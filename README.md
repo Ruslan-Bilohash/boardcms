@@ -36,7 +36,7 @@
 
 1. Клонуйте репозиторій:
    ```bash
-   git clone https://github.com/Ruslan-Bilohash/mapsme-norway.git
+   git clone https://github.com/Ruslan-Bilohash/boardcms.git
 # MapsMe Norway — Free Announcement Board for Ukrainians in Norway 🇺🇦🇳🇴
 
 **MapsMe Norway** is a **completely free** platform created especially for Ukrainians living, working, or planning to move to Norway.
@@ -78,4 +78,4 @@ Ukrainians in Norway — whether you're looking for a job in Oslo, renting an ap
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Ruslan-Bilohash/mapsme-norway.git
+   git clone https://github.com/Ruslan-Bilohash/boardcms.git
