@@ -87,7 +87,6 @@ uploads/ads/ — хранилище фото
 1. Клонуйте репозиторій:
    ```bash
    git clone https://github.com/Ruslan-Bilohash/boardcms.git
-# MapsMe Norway — Free Announcement Board for Ukrainians in Norway 🇺🇦🇳🇴
 
 **MapsMe Norway** is a **completely free** platform created especially for Ukrainians living, working, or planning to move to Norway.
 
@@ -111,9 +110,6 @@ Find and post ads quickly and easily:
 - GDPR-compliant cookie consent banner
 - Floating "Buy Me a Coffee" donation widget
 - Feedback form directly to the developer
-
-### Who is this for?
-Ukrainians in Norway — whether you're looking for a job in Oslo, renting an apartment in Bergen, buying a car in Stavanger, or just want to connect with the Ukrainian community.
 
 ### Technologies Used
 - PHP 8+ (flat-file, JSON-based — no database required at start)
