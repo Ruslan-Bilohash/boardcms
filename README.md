@@ -16,7 +16,6 @@ register.php — регистрация
 personvern.php — политика конфиденциальности (GDPR + норвежский)
 css/main.css — все стили в одном файле
 lang/ua.php, en.php, no.php — переводы (полные)
-ads/ — хранилище JSON-объявлений
 uploads/ads/ — хранилище фото
 
 Как это работает
@@ -29,7 +28,7 @@ uploads/ads/ — хранилище фото
 
 # MapsMe Norway —
 
-**Безкоштовна платформа для українців у Норвегії** — місце, де можна швидко знайти/розмістити оголошення про:
+**Безкоштовна платформа
 - роботу
 - житло
 - авто
@@ -50,7 +49,6 @@ uploads/ads/ — хранилище фото
 - Форма зворотного зв'язку (на мою пошту)
 
 ### Для кого цей проєкт?
-Для українців, які живуть, працюють або планують переїзд до Норвегії.  
 Це зручний інструмент, щоб швидко знайти помічника, житло, роботу або просто познайомитись з іншими українцями.
 
 ### Технології
@@ -61,13 +59,8 @@ uploads/ads/ — хранилище фото
 - CookieConsent (GDPR-сумісний банер)
 - Адаптивний дизайн (Mobile First)
 
-### Як запустити у себе?
 
-1. Клонуйте репозиторій:
-   ```bash
-   git clone https://github.com/Ruslan-Bilohash/boardcms.git
-
-**MapsMe Norway** is a **completely free** platform created especially for Ukrainians living, working, or planning to move to Norway.
+**MapsMe Norway** is a **completely free** 
 
 Find and post ads quickly and easily:
 - Jobs & Work
@@ -96,11 +89,3 @@ Find and post ads quickly and easily:
 - Font Awesome 6 (icons)
 - CookieConsent (GDPR-compliant)
 - Fully responsive & mobile-friendly
-
-
-
-### How to Run Locally / on Your Server
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Ruslan-Bilohash/boardcms.git
