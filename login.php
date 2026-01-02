@@ -1,348 +1,283 @@
 <?php
-// login.php — Вхід через телефон (+47) або email (оновлено 29.12.2025)
+// admin/login.php
+// Адаптивний, сучасний вхід в адмін-панель
+// Оновлено: січень 2026
+// Рекомендації: замінити жорсткий логін/пароль на хешування + базу даних
 
 session_start();
 
-// Якщо вже залогінений — на профіль
-if (isset($_SESSION['user_id'])) {
-    header("Location: /profile.php");
+// Якщо вже авторизовані — перенаправляємо
+if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
+    header("Location: /admin/index.php");
     exit;
 }
 
 $error = '';
-$success = '';
+$attempts_key = 'login_attempts_' . md5($_SERVER['REMOTE_ADDR']);
+$max_attempts = 5;
+$lockout_time = 900; // 15 хвилин
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $login    = trim($_POST['login'] ?? '');      // email або телефон
-    $password = trim($_POST['password'] ?? '');
-
-    // Тимчасова логіка (замініть на справжню перевірку в БД або файлі)
-    // Приклад: телефон +47xxxxxxxxx або email
-    if (preg_match('/^(\+47)?[0-9]{8}$/', $login) || filter_var($login, FILTER_VALIDATE_EMAIL)) {
-        if ($password === '123456') { // ТИМЧАСОВИЙ ТЕСТОВИЙ ПАРОЛЬ — ЗАМІНІТЬ!!!
-            $_SESSION['user_id'] = 1;
-            $_SESSION['user_login'] = $login;
-            header("Location: /profile.php");
-            exit;
-        } else {
-            $error = 'Неправильний пароль';
-        }
-    } else {
-        $error = 'Введіть коректний email або норвезький номер телефону (+47xxxxxxxxx)';
+// Перевірка блокування
+if (isset($_SESSION[$attempts_key])) {
+    $data = $_SESSION[$attempts_key];
+    if ($data['count'] >= $max_attempts && time() - $data['time'] < $lockout_time) {
+        $error = 'Занадто багато невдалих спроб. Спробуйте знову через ' . 
+                 ceil(($lockout_time - (time() - $data['time'])) / 60) . 
+                 ' хвилин.';
     }
 }
-$title = [
-    'ua' => 'Увійти — MapsMe Norway',
-    'en' => 'Login — MapsMe Norway',
-    'no' => 'Logg inn — MapsMe Norway'
-][$current_lang];
 
-$welcome = [
-    'ua' => 'Вітаємо на MapsMe Norway!',
-    'en' => 'Welcome to MapsMe Norway!',
-    'no' => 'Velkommen til MapsMe Norway!'
-][$current_lang];
+$admin_login = 'admin';           // ← змініть!
+$admin_password_hash = password_hash('12345', PASSWORD_ARGON2ID); // ← змініть пароль!
 
-$email_label = [
-    'ua' => 'Email',
-    'en' => 'Email',
-    'no' => 'E-post'
-][$current_lang];
+// В реальному проекті використовуйте базу даних + password_hash()
+// $admin_password_hash = '$argon2id$v=19$m=65536,t=4,p=1$...';
 
-$phone_label = [
-    'ua' => 'Телефон (+47)',
-    'en' => 'Phone (+47)',
-    'no' => 'Telefon (+47)'
-][$current_lang];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
+    
+    $input_login    = trim($_POST['login']    ?? '');
+    $input_password = $_POST['password'] ?? '';
 
-$password_label = [
-    'ua' => 'Пароль',
-    'en' => 'Password',
-    'no' => 'Passord'
-][$current_lang];
+    // Захист від brute-force — лічильник спроб
+    if (!isset($_SESSION[$attempts_key])) {
+        $_SESSION[$attempts_key] = ['count' => 0, 'time' => time()];
+    }
 
-$login_btn = [
-    'ua' => 'Увійти',
-    'en' => 'Log in',
-    'no' => 'Logg inn'
-][$current_lang];
+    if (empty($input_login) || empty($input_login)) {
+        $error = 'Заповніть логін та пароль';
+    } 
+    elseif ($input_login === $admin_login && password_verify($input_password, $admin_password_hash)) {
+        // Успішний вхід
+        $_SESSION['admin_logged_in']    = true;
+        $_SESSION['admin_name']         = 'Адміністратор';
+        $_SESSION['admin_login_time']   = time();
+        $_SESSION['admin_ip']           = $_SERVER['REMOTE_ADDR'];
 
-$no_account = [
-    'ua' => 'Немає акаунту?',
-    'en' => 'No account yet?',
-    'no' => 'Ingen konto ennå?'
-][$current_lang];
+        // Скидаємо лічильник невдалих спроб
+        unset($_SESSION[$attempts_key]);
 
-$register_link = [
-    'ua' => 'Зареєструватися',
-    'en' => 'Register',
-    'no' => 'Registrer deg'
-][$current_lang];
+        header("Location: /admin/index.php");
+        exit;
+    } 
+    else {
+        // Невдалий вхід
+        $_SESSION[$attempts_key]['count']++;
+        $_SESSION[$attempts_key]['time'] = time();
+
+        $remaining = $max_attempts - $_SESSION[$attempts_key]['count'];
+        $error = "Невірний логін або пароль. Залишилось спроб: " . max(0, $remaining);
+        
+        if ($_SESSION[$attempts_key]['count'] >= $max_attempts) {
+            $error = "Акаунт тимчасово заблоковано на 15 хвилин через багато невдалих спроб.";
+        }
+    }
+}
 ?>
-
-
-
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вхід — MapsMe Norway</title>
-
-    <!-- Шрифти -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+    <title>Вхід · MapsMe Norway Admin</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-
-    <!-- Основний стиль сайту -->
-    <link rel="stylesheet" href="/css/main.css?v=<?= time() ?>">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --primary: #60a5fa;
+            --primary-dark: #3b82f6;
+            --danger: #f87171;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --transition: 0.25s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background: linear-gradient(135deg, #f0f4ff 0%, #e6f0ff 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Manrope', sans-serif;
-        }
-
-        .login-box {
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 20px 50px rgba(67,97,238,0.18);
-            padding: 3rem 2.5rem;
-            width: 100%;
-            max-width: 460px;
-            margin: 1rem;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.4s ease;
-        }
-
-        .login-box:hover {
-            transform: translateY(-8px);
-        }
-
-        .login-logo {
-            width: 90px;
-            height: 90px;
-            background: linear-gradient(135deg, #4361ee, #ff006e);
-            border-radius: 50%;
+            min-height: 100dvh;
+            font-family: 'Manrope', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(96,165,250,0.08) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(96,165,250,0.06) 0%, transparent 35%);
             display: grid;
             place-items: center;
-            color: white;
-            font-size: 2.8rem;
-            margin: 0 auto 1.2rem;
-            box-shadow: 0 10px 30px rgba(67,97,238,0.35);
+            padding: 1.5rem;
         }
 
-        .login-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.4rem;
-            color: #2b2d42;
-            text-align: center;
-            margin: 0 0 0.5rem;
+        .login-card {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 1px solid rgba(96,165,250,0.12);
+            padding: clamp(1.75rem, 5vw, 3rem) clamp(1.5rem, 5vw, 2.5rem);
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.45),
+                        inset 0 0 0 1px rgba(96,165,250,0.08);
+            position: relative;
+            overflow: hidden;
         }
 
-        .login-subtitle {
+        .logo {
+            font-size: clamp(3.2rem, 12vw, 4.8rem);
+            color: var(--primary);
             text-align: center;
-            color: #8d99ae;
-            font-size: 1.05rem;
+            margin-bottom: 1.25rem;
+            filter: drop-shadow(0 4px 12px rgba(96,165,250,0.35));
+        }
+
+        h1 {
+            text-align: center;
+            font-size: clamp(1.5rem, 5vw, 1.85rem);
+            font-weight: 600;
             margin-bottom: 2rem;
+            color: var(--text);
+        }
+
+        .error {
+            background: rgba(248,113,113,0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(248,113,113,0.3);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.75rem;
+            font-size: 0.95rem;
+            text-align: center;
         }
 
         .form-group {
-            margin-bottom: 1.6rem;
             position: relative;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.6rem;
-            color: #2b2d42;
-            font-weight: 500;
+            margin-bottom: 1.5rem;
         }
 
         .form-group input {
             width: 100%;
-            padding: 1.1rem 1.2rem 1.1rem 3.5rem;
-            border: 1px solid #ddd;
-            border-radius: 12px;
+            padding: 1.05rem 1rem 1.05rem 3.1rem;
+            border: none;
+            border-radius: 10px;
+            background: #334155;
+            color: white;
             font-size: 1rem;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #4361ee;
-            box-shadow: 0 0 0 3px rgba(67,97,238,0.15);
+            background: #374151;
+            box-shadow: 0 0 0 3px rgba(96,165,250,0.35);
         }
 
-        .form-group i {
+        .input-icon {
             position: absolute;
-            left: 1.2rem;
+            left: 1.1rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #8d99ae;
-            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            pointer-events: none;
         }
 
         .btn-login {
             width: 100%;
-            padding: 1.2rem;
-            background: linear-gradient(135deg, #4361ee, #3a56d4);
+            padding: 1.1rem;
+            margin-top: 0.5rem;
+            background: linear-gradient(90deg, var(--primary-dark), var(--primary));
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 1.15rem;
+            border-radius: 10px;
+            font-size: 1.05rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 1rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
         }
 
         .btn-login:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(67,97,238,0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(59,130,246,0.35);
         }
 
-        .error-msg {
-            background: #ffebee;
-            color: #c62828;
-            padding: 0.9rem;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .footer-text {
             text-align: center;
-            font-size: 0.95rem;
-        }
-
-        .toggle-login {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .toggle-btn {
-            padding: 0.7rem 1.4rem;
-            border: 2px solid #ddd;
-            border-radius: 50px;
-            background: transparent;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-
-        .toggle-btn.active {
-            background: #4361ee;
-            color: white;
-            border-color: #4361ee;
-        }
-
-        .register-link {
-            text-align: center;
-            margin-top: 1.8rem;
-            color: #8d99ae;
-            font-size: 0.95rem;
-        }
-
-        .register-link a {
-            color: #4361ee;
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .register-link a:hover {
-            text-decoration: underline;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
         }
 
         @media (max-width: 480px) {
-            .login-box {
+            .login-card {
                 padding: 2rem 1.5rem;
+                border-radius: 12px;
             }
+            .logo { font-size: 3.8rem; }
         }
     </style>
 </head>
 <body>
 
-<div class="login-box">
-    <div class="login-header">
-        <div class="login-logo">
-            <i class="fa-solid fa-mountain-sun"></i>
-        </div>
-        <h1 class="login-title">Вхід</h1>
-        <p class="login-subtitle">Вітаємо на MapsMe Norway!</p>
+<div class="login-card">
+    <div class="logo">
+        <i class="fas fa-shield-halved"></i>
     </div>
-	
 
-               <!-- Прапорці мов -->
-            <div class="lang-switch" style="display:flex; gap:1rem; align-items:center;">
-                <?php foreach ($available_langs as $code => $lang): ?>
-                    <a href="?lang=<?= $code ?>" title="<?= $lang['name'] ?>" class="lang-flag <?= $current_lang === $code ? 'active' : '' ?>" style="font-size:1.8rem; text-decoration:none; transition:transform 0.2s ease;">
-                        <?= $lang['flag'] ?>
-                    </a>
-                <?php endforeach; ?>
-            </div>
+    <h1>Вхід в адмін-панель</h1>
+
     <?php if ($error): ?>
-        <div class="error-msg"><?= htmlspecialchars($error) ?></div>
+        <div class="error"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
-    <!-- Перемикач: Email / Телефон -->
-    <div class="toggle-login">
-        <button class="toggle-btn active" data-type="email">Email</button>
-        <button class="toggle-btn" data-type="phone">Телефон (+47)</button>
-    </div>
-
-    <form method="POST" id="loginForm">
-        <div class="form-group" id="email-group">
-            <label for="email">Email</label>
-            <i class="fas fa-envelope"></i>
-            <input type="email" id="email" name="login" required placeholder="your@email.com" autocomplete="email">
-        </div>
-
-        <div class="form-group" id="phone-group" style="display:none;">
-            <label for="phone">Телефон</label>
-            <i class="fas fa-phone"></i>
-            <input type="tel" id="phone" name="login" pattern="\+47[0-9]{8}|[0-9]{8}" placeholder="+47xxxxxxxxx" autocomplete="tel">
+    <form method="POST" autocomplete="off">
+        <div class="form-group">
+            <i class="fas fa-user input-icon"></i>
+            <input 
+                type="text" 
+                name="login" 
+                placeholder="Логін" 
+                required 
+                autofocus 
+                autocomplete="username"
+                value="<?= htmlspecialchars($input_login ?? '') ?>">
         </div>
 
         <div class="form-group">
-            <label for="password">Пароль</label>
-            <i class="fas fa-lock"></i>
-            <input type="password" id="password" name="password" required placeholder="••••••••">
+            <i class="fas fa-lock input-icon"></i>
+            <input 
+                type="password" 
+                name="password" 
+                placeholder="Пароль" 
+                required 
+                autocomplete="current-password">
         </div>
 
-        <button type="submit" class="btn-login">Увійти</button>
+        <button type="submit" class="btn-login">
+            Увійти
+        </button>
     </form>
 
-    <div class="register-link">
-        Немає акаунту? <a href="/register.php">Зареєструватися</a>
+    <div class="footer-text">
+        MapsMe Norway · © <?= date('Y') ?>
     </div>
 </div>
-
-<script>
-    // Перемикач Email / Телефон
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-
-            const type = this.dataset.type;
-            document.getElementById('email-group').style.display = type === 'email' ? 'block' : 'none';
-            document.getElementById('phone-group').style.display = type === 'phone' ? 'block' : 'none';
-
-            // Очищаємо поле login при зміні типу
-            document.querySelector('input[name="login"]').value = '';
-        });
-    });
-
-    // За замовчуванням — email активний
-    document.querySelector('[data-type="email"]').click();
-</script>
 
 </body>
 </html>
