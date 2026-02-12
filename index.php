@@ -6,14 +6,18 @@ error_reporting(E_ALL);
 
 require_once 'config.php';
 require_once 'includes/functions.php';
+// Отримання схвалених оголошень з БД
+$approved_ads = getApprovedAds($pdo);
 ?>
 
 <!DOCTYPE html>
 <html lang="<?= $current_lang ?>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Безкоштовна дошка оголошень для українців у Норвегії — робота, житло, авто, послуги, події">
+    <!-- Виправлений viewport для iPhone 16 Pro Max (немає масштабування) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <title><?= e($texts['site_title']) ?> — <?= e($texts['site_subtitle']) ?></title>
 
@@ -23,16 +27,16 @@ require_once 'includes/functions.php';
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
 
     <!-- Іконки -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
     <!-- Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5n/N0Xv4w=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
     <!-- Головний CSS -->
-    <link rel="stylesheet" href="/css/main.css?v=<?= filemtime($_SERVER['DOCUMENT_ROOT'] . '/css/main.css') ?: time() ?>">
+    <link rel="stylesheet" href="/css/main.css?v=<?= time() ?>">
 
     <!-- Cookie Consent -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js" defer></script>
 
     <script>
@@ -66,10 +70,6 @@ $banner_text = [
     <?= $banner_text ?>
 </div>
 
-<div class="container">
-    <?php include 'map-section.php'; ?>
-    <?php include 'news-section.php'; ?>
-    <?php include 'ads-section.php'; ?>
 
  <!-- У index.php або де виводяться плитки -->
 
@@ -110,18 +110,58 @@ $banner_text = [
         </a>
     <?php endforeach; ?>
 </div>
+<div class="container">
+<a href="/news_add.php" style="
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #4361ee, #3a56d4);
+    color: white;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.2rem;
+    box-shadow: 0 8px 25px rgba(67,97,238,0.3);
+    transition: all 0.3s;
+    margin: 2rem 0;
+">
+    <i class="fas fa-newspaper"></i> <?= e($texts['add_news'] ?? 'Опублікувати новину / подію') ?>
+</a> <?php include 'print-text.php'; ?>
+<?php include 'app_norway.php'; ?>
+<?php include 'app_norway2.php'; ?>
+<?php include 'news-section.php'; ?>
+    <?php include 'map-section.php'; ?>
+   
+    <?php include 'ads-section.php'; ?>
+
+
 </div>
 
-<button class="btn-add" onclick="openModal()">
-    <i class="fas fa-plus-circle"></i> <?= e($texts['add_free']) ?>
-</button>
 
 <!-- Buy Me a Coffee віджет -->
 <script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="bilohash" data-description="Support me on Buy me a coffee!" data-message="Дякую за підтримку! ❤️" data-color="#FF813F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
 
 <?php include 'modal-add.php'; ?>
 <?php include 'footer.php'; ?>
-
+<script>
+    // Автоматичне визначення місця розташування
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                console.log('Ваше місце: ', lat, lng);
+                // Можна передати в форму або карту
+                // document.getElementById('lat').value = lat;
+                // document.getElementById('lng').value = lng;
+            },
+            (error) => {
+                console.log('Геолокація відключена або помилка: ', error.message);
+            }
+        );
+    } else {
+        console.log('Геолокація не підтримується вашим браузером');
+    }
+</script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const map = L.map('map').setView([64.686313, 12.013787], 5);
