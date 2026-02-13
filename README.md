@@ -6,7 +6,8 @@
 **Версія PHP:** 8.1+ (рекомендовано 8.2+)  
 **База даних:** MySQL 5.7+ / MariaDB 10.5+  
 **Розробник:** Ruslan Bilohash (rbilohash@gmail.com)  
-**Сайт: https://mapsme.no/
+**Сайт:** https://mapsme.no/
+**Адмін панель:** [https://mapsme.no/](https://mapsme.no/admin/index.php)
 **Ліцензія:** MIT License
 
 ---
